@@ -1,0 +1,36 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: coupon
+      MYSQL_USER: coupon
+      MYSQL_PASSWORD: coupon
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # 지속적으로 명령어 실행함으로써 살아있는지 확인
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  coupon-service:
+    # 이미지 빌드: coupon-service/coupon 디렉토리에서 ./gradlew jibDockerBuild
+    image: coupon-service:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/coupon
+      SPRING_DATASOURCE_USERNAME: coupon
+      SPRING_DATASOURCE_PASSWORD: coupon
+      # 로컬 application과 docker와 연결 8080 <-> 8080
+    ports:
+      - "8080:8080"
+
+
+
+volumes:
+  mysql-data:
