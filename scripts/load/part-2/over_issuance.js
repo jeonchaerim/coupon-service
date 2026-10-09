@@ -11,7 +11,7 @@ export const options = {
   scenarios: { issue: {
     executor: 'constant-arrival-rate',  // 일정 속도로 요청
     rate: 5000, timeUnit: '1s', duration: '30s', // 1초 단위에 5000횟수 30초 동안
-    preAllocatedVUs: 2000, maxVUs: 5000,  // 2000개 할당, 최대 5000
+    preAllocatedVUs: 2000, maxVUs: 5000,  // 기본 VU(virtual user:가상 사용자) 2000개 할당, 최대 5000
   } },
 };
 // 요청마다 실행되는 함수

@@ -23,7 +23,7 @@ class CouponService(
     fun createCoupon(request: CreateCouponRequest): Coupon {
         val coupon = Coupon(
             name = request.name,
-            totalQuantity = request.totalQuality,
+            totalQuantity = request.totalQuantity,
             validityDays = request.validityDays,
             startsAt = request.startsAt,
         )
@@ -34,8 +34,9 @@ class CouponService(
     @Transactional
     fun issue(couponId: Long, userId: Long): Issuance {
         // 쿠폰 존재 확인
-        val coupon = couponRepository.findById(couponId)
-            .orElseThrow{ CouponNotFoundException() }  //JAVA () -> new CouponNotFoundException() / 지금 실행하지 말고, 필요할 때 실행해"라는 코드 묶음(람다)
+        val coupon = couponRepository.findByIdForUpdate(couponId)
+            ?: throw CouponNotFoundException()      // null이면 익셉션 던짐
+        //JAVA () -> new CouponNotFoundException() / 지금 실행하지 말고, 필요할 때 실행해"라는 코드 묶음(람다)
 
         val now = LocalDateTime.now();
 
