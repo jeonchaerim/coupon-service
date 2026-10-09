@@ -3,6 +3,7 @@ package com.apiece.coupon.domain
 import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
@@ -16,4 +17,10 @@ interface CouponRepository : JpaRepository<Coupon, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM Coupon c WHERE c.id = :id")
     fun findByIdForUpdate(@Param("id") id:Long): Coupon?        // 해당행이 없음 null로 들어가도록
+
+    // 쿠폰 발급수량 +
+    @Modifying   // JPA 수정 명시필요
+    @Query("UPDATE Coupon c SET c.issuedQuantity = c.issuedQuantity + 1 WHERE c.id = :id")
+    fun incrementIssuedQuantity(@Param("id") id:Long): Int
+
 }
