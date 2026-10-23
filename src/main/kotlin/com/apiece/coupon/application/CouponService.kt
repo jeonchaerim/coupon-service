@@ -5,6 +5,8 @@ import com.apiece.coupon.domain.Coupon
 import com.apiece.coupon.domain.CouponRepository
 import com.apiece.coupon.domain.Issuance
 import com.apiece.coupon.domain.IssuanceRepository
+import com.apiece.coupon.infrastructure.messaging.InMemoryIssuanceQueue
+import com.apiece.coupon.infrastructure.messaging.IssuanceRequested
 import com.apiece.coupon.support.AlreadyIssuedException
 import com.apiece.coupon.support.CouponNotFoundException
 import com.apiece.coupon.support.NotStartedException
@@ -16,8 +18,9 @@ import java.time.LocalDateTime
 @Service   // SingleTon으로 만들기위함
 class CouponService(
     private val couponRepository: CouponRepository,
-    private val issuanceRepository: IssuanceRepository,
+//    private val issuanceRepository: IssuanceRepository,
     private val couponIssuer: CouponIssuer,
+    private val issuanceQueue: InMemoryIssuanceQueue,
     ) {
 
     @Transactional
@@ -51,38 +54,54 @@ class CouponService(
             throw NotStartedException()
         }
 
-        // 쿠폰 발행수확인 (품절...)
-        if (coupon.isSoldOut()) {
-            throw SoldOutException()
-        }
+        /* Redis 랑 중복
+       // 쿠폰 발행수확인 (품절...)
+       if (coupon.isSoldOut()) {
+           throw SoldOutException()
+       }
 
-        // 회원, 쿠폰
-        if(issuanceRepository.existsByUserIdAndCouponId(userId, couponId)) {
-            throw AlreadyIssuedException()
-        }
+       // 회원, 쿠폰 재고확인
+       // >> Redis Lua 안으로 옮김
+       if(issuanceRepository.existsByUserIdAndCouponId(userId, couponId)) {
+           throw AlreadyIssuedException()
+       }
+        */
 
         // 정합성 3. Redis + Lua
         // 여기만 Redis 임계범위
         // 여기만 Redis 메모리 내에 저장됨
         // 원자적 연산
         // 재고 및 발급수량 늘린 부분까지 Redis 처리 후 하단에 성공건은 DB에서 수량 증가하도록 처리
-        couponIssuer.tryIssue(couponId)
-        // >> 아래는 분리
+        couponIssuer.tryIssue(couponId, userId)
+
+        // >> 아래는 큐로 분리 (위까지 Redis)
+
+        val expiresAt = now.plusDays(coupon.validityDays.toLong())
+        issuanceQueue.enqueue(
+            IssuanceRequested(
+                couponId = couponId,
+                userId = userId,
+                issuedAt = now,
+                expiresAt = expiresAt
+            )
+        )
+
+        return Issuance(
+            userId = userId,
+            couponId = couponId,
+            issuedAt = now,
+            expiresAt = expiresAt,
+        )
+
+        /* 큐로옮김
+        // ** 여기서 부터 인메모리 큐 처리 ! **
         couponRepository.incrementIssuedQuantity(couponId)
 
-        /*
+
         // 정합성
         // 수량증가 + 저장을 한 트랜잭션 단위로 묶음
         coupon.issuedQuantity++;
          */
 
-        return issuanceRepository.save(
-            Issuance(
-                userId = userId,
-                couponId = couponId,
-                issuedAt = now,
-                expiresAt = now.plusDays(coupon.validityDays.toLong()),
-            )
-        )
     }
 }

@@ -22,5 +22,4 @@ interface CouponRepository : JpaRepository<Coupon, Long> {
     @Modifying   // JPA 수정 명시필요
     @Query("UPDATE Coupon c SET c.issuedQuantity = c.issuedQuantity + 1 WHERE c.id = :id")
     fun incrementIssuedQuantity(@Param("id") id:Long): Int
-
 }

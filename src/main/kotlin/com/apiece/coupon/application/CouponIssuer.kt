@@ -23,13 +23,13 @@ class CouponIssuer(
     // 최초 쿠폰 만든 이후에, 사용자에게 발행시에는 해당 함수 실행
     // 사용자 중복 검증 + 재고 검증 + 재고 차감 + 사용자 등록을 Lua 한 덩어리로 atomic 실행.
     // 실패 시 도메인 예외를 던진다.
-    fun tryIssue(couponId: Long) {
+    fun tryIssue(couponId: Long, userId: Long) {
         // Lua 스크립트 실행: 쿠폰 id로 만든 키 2개(재고, 명단) + 사용자 id를 넘김
         // 만약 값이 null 이면 error 던짐 null이라고
         val raw = redisTemplate.execute(
             script,
             listOf(stockKey(couponId), usersKey(couponId)),
-//            userId.toString(),
+            userId.toString(),
         ) ?: error("Lua 스크립트 결과가 null")
 
         // 스크립트 판정 결과
@@ -54,5 +54,5 @@ class CouponIssuer(
     // Redis 키 이름 만들기: 재고량, 받아간 사람 명단 (보내는 건 아니고 이름만 생성)
     // $couponId: 변수
     private fun stockKey(couponId: Long) = "coupon:$couponId:stock" // "coupon:1:stock"
-    private fun usersKey(couponId: Long) = "coupon:$couponId:users" // "coupon:1:users"
+    private fun usersKey(couponId: Long) = "coupon:$couponId:users" // "coupon:1:users" set 자료구조
 }

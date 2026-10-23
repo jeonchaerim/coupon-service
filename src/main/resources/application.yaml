@@ -13,13 +13,13 @@ spring:
     hibernate:
       ddl-auto: update  # 운영은 NONE
     open-in-view: false
-    show-sql: true
+    show-sql: false  # 로깅 양도 부하 테스트시 응답 latency에 영향이 있으므로 true -> false 로 변경하도록 하였음
   mvc:
     problemdetails:
       enabled: true
 
 logging:
   level:
-    com.apiece.coupon: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    com.apiece.coupon: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
