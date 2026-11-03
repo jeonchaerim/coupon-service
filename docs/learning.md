@@ -345,6 +345,11 @@ Redis 원자연산 + Lua
 - [ ] DB 최종 방어선: `UPDATE ... WHERE issued_quantity < total_quantity` 로 초과 발급 차단
 - [ ] 쿠폰 사용(use) 동시 요청 시 중복 사용 → 동시성 처리
 - [ ] Issuance status `@Column(length = 16)` 은 MySQL ENUM이라 의미 없음 → VARCHAR로 할지 결정
+- [x] Lua 유저 중복 체크 → part-3-2a 에서 추가, 3-2b 부하 테스트에서 정확히 5,000 확인
+- [ ] 요청 경로의 `findById` DB 조회 없애기 (쿠폰 정보 캐시 or Redis 판정 맨 앞으로)
+  - 3-2b: 품절 뒤 1만 건도 전부 DB 커넥션 쓰고 나서 409, 워커 쓰기랑 커넥션 10개 나눠 씀 → p99 21.75s (목표 0.5s)
+- [ ] @Async 스레드 풀 큐(10,000) 가득 차면 TaskRejectedException → 지금 500으로 나감. QueueFullException(503) 지우면서 처리 빠짐
+- [ ] 워커(@Async) DB 저장 실패 시 재시도 없음, 로그만 남고 이벤트 버려짐 → Redis 재고만 빠진 채로 남음
 
 ### 부하 테스트
 - [ ] 재고 500으로 줄여서 품절 경계 검증 (issuance_rows 가 정확히 500에서 멈추는지) → 세 브랜치 다
@@ -355,6 +360,8 @@ Redis 원자연산 + Lua
 - [ ] 테스트 중 `docker stats` 로 앱/MySQL CPU 확인
 - [ ] Hikari 풀 크기, 톰캣 스레드 수 튜닝 (무작정 키우면 MySQL이 못 버팀)
 - [ ] 품절 이후 요청 응답시간, P50/P99, Hikari pending 커넥션 수 같이 보기
+- [ ] **part-3-2a 다시 측정**: 10/12 이후 jibDockerBuild 가 실패해서 옛날 이미지로 돌았음 (2a 결과는 무효)
+  - 테스트 전에 `BUILD SUCCESSFUL` + `docker images coupon-service` 생성 시간 + Redis `coupon:1:users` 키 생기는지 확인
 
 ### 환경 / 설정
 - [x] show-sql: true 지우기 (SQL 로그 두 번 찍힘) → part-3-1 에서 show-sql false + SQL/bind 로그 WARN 으로 줄임 (부하 테스트 latency 에 영향 컸음)
